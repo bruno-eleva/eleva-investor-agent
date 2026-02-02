@@ -5,6 +5,7 @@ Eleva AI - Investor Data Room Assistant
 import streamlit as st
 from dotenv import load_dotenv
 import os
+import base64
 
 from agent import ElevaDataRoomAgent
 
@@ -18,7 +19,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Professional CSS for investors
+def get_logo_base64():
+    """Load logo as base64 for embedding."""
+    try:
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "eleva-logo.png")
+        with open(logo_path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    except:
+        return None
+
+LOGO_BASE64 = get_logo_base64()
+
+# Professional CSS matching Eleva brand
 st.markdown("""
 <style>
     /* Hide Streamlit branding */
@@ -26,113 +38,207 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Main styling */
-    .main {
-        padding-top: 2rem;
+    /* Import clean font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    .hero-header {
+    /* Main container */
+    .main {
+        padding-top: 1rem;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 900px;
+    }
+
+    /* Hero section */
+    .hero-section {
         text-align: center;
-        padding: 2rem 0;
+        padding: 3rem 2rem;
         margin-bottom: 2rem;
     }
 
-    .hero-title {
-        font-size: 2.8rem;
-        font-weight: 700;
-        color: #1a1a2e;
-        margin-bottom: 0.5rem;
+    .logo-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .logo-container img {
+        height: 50px;
+        width: auto;
     }
 
     .hero-subtitle {
-        font-size: 1.2rem;
-        color: #666;
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: #3a3a3a;
         margin-bottom: 1rem;
+        letter-spacing: 0.5px;
     }
 
     .hero-description {
         font-size: 1rem;
-        color: #888;
-        max-width: 600px;
+        color: #666;
+        max-width: 500px;
         margin: 0 auto;
+        line-height: 1.6;
     }
 
+    /* Loading container */
+    .loading-section {
+        background: #f8f9fa;
+        border-radius: 16px;
+        padding: 4rem 2rem;
+        margin: 2rem auto;
+        text-align: center;
+        max-width: 700px;
+    }
+
+    .loading-section h2 {
+        color: #3a3a3a;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .loading-section p {
+        color: #666;
+        font-size: 1.05rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .loading-section .subtext {
+        color: #999;
+        font-size: 0.9rem;
+    }
+
+    /* Form elements */
     .stTextArea textarea {
         font-size: 1rem;
-        border-radius: 10px;
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+        padding: 1rem;
+    }
+
+    .stTextArea textarea:focus {
+        border-color: #3a3a3a;
+        box-shadow: 0 0 0 1px #3a3a3a;
     }
 
     .stTextInput input {
-        border-radius: 10px;
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
     }
 
-    .info-box {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.2rem;
-        border-radius: 12px;
+    /* Time info box */
+    .time-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
         margin: 1rem 0;
         text-align: center;
-    }
-
-    .info-box p {
-        margin: 0;
+        color: #666;
         font-size: 0.95rem;
     }
 
+    /* Response container */
     .response-container {
         background-color: #f8f9fa;
-        border-left: 4px solid #667eea;
+        border-left: 3px solid #3a3a3a;
         padding: 1.5rem;
         border-radius: 0 12px 12px 0;
         margin: 1.5rem 0;
     }
 
-    .loading-container {
-        text-align: center;
-        padding: 3rem;
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
-        border-radius: 16px;
-        margin: 2rem 0;
-    }
-
-    .loading-container h2 {
-        color: #1a1a2e;
-        margin-bottom: 1rem;
-    }
-
-    .loading-container p {
-        color: #666;
-        font-size: 1.1rem;
-    }
-
-    .tab-content {
-        padding: 1.5rem 0;
-    }
-
-    /* Button styling */
+    /* Buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #3a3a3a;
         color: white;
         border: none;
         border-radius: 10px;
         padding: 0.75rem 2rem;
-        font-weight: 600;
-        transition: transform 0.2s;
+        font-weight: 500;
+        font-size: 1rem;
+        transition: all 0.2s ease;
     }
 
     .stButton > button:hover {
-        transform: translateY(-2px);
+        background: #2a2a2a;
         color: white;
+        transform: translateY(-1px);
     }
 
-    .footer-note {
+    .stDownloadButton > button {
+        background: transparent;
+        color: #3a3a3a;
+        border: 1px solid #3a3a3a;
+        border-radius: 10px;
+        font-weight: 500;
+    }
+
+    .stDownloadButton > button:hover {
+        background: #f8f9fa;
+        color: #3a3a3a;
+    }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2rem;
+        justify-content: center;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #666;
+        padding: 1rem 0;
+    }
+
+    .stTabs [aria-selected="true"] {
+        color: #3a3a3a;
+    }
+
+    /* Section headers */
+    .section-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-header h3 {
+        color: #3a3a3a;
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .section-header p {
+        color: #666;
+        font-size: 1rem;
+    }
+
+    /* Footer */
+    .footer-section {
         text-align: center;
         color: #999;
         font-size: 0.85rem;
-        margin-top: 3rem;
+        margin-top: 4rem;
         padding-top: 2rem;
         border-top: 1px solid #eee;
+    }
+
+    .footer-section p {
+        margin: 0.3rem 0;
+    }
+
+    /* Hide streamlit elements */
+    div[data-testid="stDecoration"] {
+        display: none;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -140,7 +246,6 @@ st.markdown("""
 
 def get_agent():
     """Initialize the agent with secrets or environment variables."""
-    # Try Streamlit secrets first (for cloud deployment), then env variables
     try:
         notion_key = st.secrets.get("NOTION_API_KEY") or os.getenv("NOTION_API_KEY")
         anthropic_key = st.secrets.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
@@ -160,19 +265,51 @@ def get_agent():
     )
 
 
-def main():
-    # Hero Header
-    st.markdown("""
-    <div class="hero-header">
-        <p class="hero-title">🚀 Eleva AI</p>
+def render_header():
+    """Render the header with logo."""
+    if LOGO_BASE64:
+        logo_html = f'<img src="data:image/png;base64,{LOGO_BASE64}" alt="Eleva">'
+    else:
+        logo_html = '<span style="font-size: 2rem; font-weight: 700; color: #3a3a3a;">eleva</span>'
+
+    st.markdown(f"""
+    <div class="hero-section">
+        <div class="logo-container">
+            {logo_html}
+        </div>
         <p class="hero-subtitle">Investor Data Room Assistant</p>
         <p class="hero-description">
-            Get instant answers to your questions about Eleva AI.
+            Get instant answers to your questions about Eleva AI.<br>
             All responses are based on our official documentation.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
+
+def render_loading():
+    """Render the loading screen."""
+    if LOGO_BASE64:
+        logo_html = f'<img src="data:image/png;base64,{LOGO_BASE64}" alt="Eleva" style="height: 45px; margin-bottom: 1rem;">'
+    else:
+        logo_html = '<span style="font-size: 1.8rem; font-weight: 700; color: #3a3a3a;">eleva</span>'
+
+    st.markdown(f"""
+    <div class="hero-section">
+        <div class="logo-container">
+            {logo_html}
+        </div>
+        <p class="hero-subtitle">Investor Data Room Assistant</p>
+    </div>
+
+    <div class="loading-section">
+        <h2>Preparing Your Experience</h2>
+        <p>Loading the latest information from our data room...</p>
+        <p class="subtext">This may take a moment on first load</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def main():
     # Initialize agent
     if "agent" not in st.session_state:
         agent = get_agent()
@@ -183,13 +320,7 @@ def main():
 
     # Load data room content
     if "data_loaded" not in st.session_state:
-        st.markdown("""
-        <div class="loading-container">
-            <h2>Preparing Your Experience</h2>
-            <p>Loading the latest information from our data room...</p>
-            <p style="font-size: 0.9rem; color: #888;">This may take a moment on first load.</p>
-        </div>
-        """, unsafe_allow_html=True)
+        render_loading()
 
         with st.spinner(""):
             try:
@@ -200,25 +331,30 @@ def main():
                 st.error("Unable to load data room. Please refresh the page or try again later.")
                 return
 
+    # Render header
+    render_header()
+
     # Main interface
-    tab1, tab2 = st.tabs(["💬 Ask a Question", "📄 Due Diligence Report"])
+    tab1, tab2 = st.tabs(["💬  Ask a Question", "📄  Due Diligence Report"])
 
     with tab1:
-        st.markdown('<div class="tab-content">', unsafe_allow_html=True)
-
-        st.markdown("### What would you like to know?")
-        st.markdown("Ask any question about Eleva AI - our business model, traction, team, market opportunity, and more.")
+        st.markdown("""
+        <div class="section-header">
+            <h3>What would you like to know?</h3>
+            <p>Ask any question about Eleva AI — business model, traction, team, market, and more.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
         question = st.text_area(
             "Your Question",
             placeholder="Example: What is Eleva AI's revenue model and current traction?",
-            height=100,
+            height=120,
             label_visibility="collapsed"
         )
 
         st.markdown("""
-        <div class="info-box">
-            <p>⏱️ Responses typically take 15-30 seconds</p>
+        <div class="time-info">
+            ⏱️ Responses typically take 15-30 seconds
         </div>
         """, unsafe_allow_html=True)
 
@@ -227,8 +363,9 @@ def main():
                 with st.spinner("Analyzing your question..."):
                     try:
                         response = st.session_state.agent.answer_question(question)
+                        st.markdown("---")
                         st.markdown("### Answer")
-                        st.markdown(f'<div class="response-container">{response}</div>', unsafe_allow_html=True)
+                        st.markdown(response)
 
                         st.download_button(
                             "📥 Download Response",
@@ -242,13 +379,13 @@ def main():
             else:
                 st.warning("Please enter your question above.")
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
     with tab2:
-        st.markdown('<div class="tab-content">', unsafe_allow_html=True)
-
-        st.markdown("### Generate a Due Diligence Report")
-        st.markdown("Paste your list of questions and receive a comprehensive document addressing each one.")
+        st.markdown("""
+        <div class="section-header">
+            <h3>Generate a Due Diligence Report</h3>
+            <p>Paste your list of questions and receive a comprehensive document addressing each one.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
         doc_title = st.text_input(
             "Report Title",
@@ -258,33 +395,30 @@ def main():
 
         questions_text = st.text_area(
             "Your Questions",
-            height=350,
+            height=300,
             placeholder="""Paste your questions here. You can organize them by category:
 
 PRODUCT & MARKET
 - What problem does Eleva AI solve?
 - What is your competitive advantage?
-- Who are your target customers?
 
 TRACTION & METRICS
 - What is your current revenue?
-- How many active users do you have?
 - What are your key growth metrics?
 
 TEAM & VISION
 - Who are the founders?
-- What is your long-term vision?
-- What are you planning to do with the investment?""",
+- What is your long-term vision?""",
             label_visibility="collapsed"
         )
 
         st.markdown("""
-        <div class="info-box">
-            <p>⏱️ Comprehensive reports typically take 1-2 minutes</p>
+        <div class="time-info">
+            ⏱️ Comprehensive reports typically take 1-2 minutes
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("Generate Report", type="primary", use_container_width=True):
+        if st.button("Generate Report", type="primary", use_container_width=True, key="generate"):
             if questions_text.strip():
                 with st.spinner("Generating your comprehensive report..."):
                     try:
@@ -292,6 +426,7 @@ TEAM & VISION
                             questions_text=questions_text,
                             document_title=doc_title
                         )
+                        st.markdown("---")
                         st.markdown("### Your Report")
                         st.markdown(document)
 
@@ -307,13 +442,11 @@ TEAM & VISION
             else:
                 st.warning("Please paste your questions above.")
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
     # Footer
     st.markdown("""
-    <div class="footer-note">
-        <p>All information provided is based on Eleva AI's official data room documentation.</p>
-        <p>For additional inquiries, please contact the Eleva AI team directly.</p>
+    <div class="footer-section">
+        <p>All information is based on Eleva AI's official data room documentation.</p>
+        <p>For additional inquiries, contact the Eleva AI team directly.</p>
     </div>
     """, unsafe_allow_html=True)
 
