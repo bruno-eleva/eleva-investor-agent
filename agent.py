@@ -3,6 +3,8 @@ Eleva AI Data Room Agent
 Answers investor questions using the same structure and language as the data room.
 """
 
+import json
+import os
 import anthropic
 from notion_client_helper import NotionDataRoom
 from typing import Optional
@@ -20,12 +22,35 @@ class ElevaDataRoomAgent:
         self.notion = NotionDataRoom(notion_api_key, notion_root_page_id)
         self.model = model
         self._data_room_content: Optional[str] = None
+        self._cache_path = os.path.join(os.path.dirname(__file__), "data_room_cache.json")
+
+    def _load_from_cache(self) -> Optional[str]:
+        """Try to load data room content from the pre-built cache file."""
+        try:
+            if os.path.exists(self._cache_path):
+                with open(self._cache_path, "r", encoding="utf-8") as f:
+                    cache_data = json.load(f)
+                content = cache_data.get("content")
+                if content:
+                    print(f"Loaded from cache ({cache_data.get('page_count', '?')} pages, updated: {cache_data.get('last_updated', 'unknown')})")
+                    return content
+        except Exception as e:
+            print(f"Cache load failed: {e}")
+        return None
 
     def load_data_room(self, force_refresh: bool = False) -> str:
-        """Load all content from the Notion data room."""
+        """Load data room content. Uses cache first, falls back to Notion API."""
         if self._data_room_content and not force_refresh:
             return self._data_room_content
 
+        # Try cache first (instant)
+        if not force_refresh:
+            cached = self._load_from_cache()
+            if cached:
+                self._data_room_content = cached
+                return self._data_room_content
+
+        # Fallback to Notion API (slow)
         if force_refresh:
             self.notion.clear_cache()
 

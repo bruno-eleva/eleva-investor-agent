@@ -304,7 +304,7 @@ def render_loading():
     <div class="loading-section">
         <h2>Preparing Your Experience</h2>
         <p>Loading the latest information from our data room...</p>
-        <p class="subtext">This process may take over 5 minutes</p>
+        <p class="subtext">This will only take a few seconds</p>
     </div>
     """, unsafe_allow_html=True)
 
