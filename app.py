@@ -244,8 +244,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+@st.cache_resource
 def get_agent():
-    """Initialize the agent with secrets or environment variables."""
+    """Initialize the agent and load data room ONCE. Cached across all sessions."""
     try:
         notion_key = st.secrets.get("NOTION_API_KEY") or os.getenv("NOTION_API_KEY")
         anthropic_key = st.secrets.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
@@ -258,11 +259,15 @@ def get_agent():
     if not notion_key or not anthropic_key:
         return None
 
-    return ElevaDataRoomAgent(
+    agent = ElevaDataRoomAgent(
         anthropic_api_key=anthropic_key,
         notion_api_key=notion_key,
         notion_root_page_id=page_id
     )
+
+    # Pre-load data room (reads from cache file = instant)
+    agent.load_data_room()
+    return agent
 
 
 def render_header():
@@ -286,52 +291,14 @@ def render_header():
     """, unsafe_allow_html=True)
 
 
-def render_loading():
-    """Render the loading screen."""
-    if LOGO_BASE64:
-        logo_html = f'<img src="data:image/png;base64,{LOGO_BASE64}" alt="Eleva" style="height: 45px; margin-bottom: 1rem;">'
-    else:
-        logo_html = '<span style="font-size: 1.8rem; font-weight: 700; color: #3a3a3a;">eleva</span>'
-
-    st.markdown(f"""
-    <div class="hero-section">
-        <div class="logo-container">
-            {logo_html}
-        </div>
-        <p class="hero-subtitle">Investor Data Room Assistant</p>
-    </div>
-
-    <div class="loading-section">
-        <h2>Preparing Your Experience</h2>
-        <p>Loading the latest information from our data room...</p>
-        <p class="subtext">This will only take a few seconds</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-
 def main():
-    # Initialize agent
-    if "agent" not in st.session_state:
-        agent = get_agent()
-        if agent is None:
-            st.error("Service temporarily unavailable. Please try again later.")
-            return
-        st.session_state.agent = agent
+    # Initialize agent (cached - only runs once ever)
+    agent = get_agent()
+    if agent is None:
+        st.error("Service temporarily unavailable. Please try again later.")
+        return
 
-    # Load data room content
-    if "data_loaded" not in st.session_state:
-        render_loading()
-
-        with st.spinner(""):
-            try:
-                st.session_state.agent.load_data_room()
-                st.session_state.data_loaded = True
-                st.rerun()
-            except Exception as e:
-                st.error("Unable to load data room. Please refresh the page or try again later.")
-                return
-
-    # Render header
+    # Render header directly - no loading screen
     render_header()
 
     # Main interface
@@ -362,7 +329,7 @@ def main():
             if question:
                 with st.spinner("Analyzing your question..."):
                     try:
-                        response = st.session_state.agent.answer_question(question)
+                        response = agent.answer_question(question)
                         st.markdown("---")
                         st.markdown("### Answer")
                         st.markdown(response)
@@ -422,7 +389,7 @@ TEAM & VISION
             if questions_text.strip():
                 with st.spinner("Generating your comprehensive report..."):
                     try:
-                        document = st.session_state.agent.generate_document_from_text(
+                        document = agent.generate_document_from_text(
                             questions_text=questions_text,
                             document_title=doc_title
                         )
